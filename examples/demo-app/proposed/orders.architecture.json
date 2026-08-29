@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Order Management \u2014 Stock Reservation",
+    "visual_preset": "signal-flow"
+  },
+  "components": [
+    {
+      "id": "storefront",
+      "type": "external",
+      "label": "Storefront",
+      "sublabel": "web + mobile",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "cloud",
+      "label": "API Gateway",
+      "sublabel": "Spring Cloud Gateway",
+      "pos": [
+        220,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "order-service",
+      "type": "backend",
+      "label": "Order Service",
+      "sublabel": "Spring Boot 3 + outbox",
+      "pos": [
+        430,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "reservation",
+      "type": "backend",
+      "label": "Stock Reservation",
+      "sublabel": "reserves + releases",
+      "pos": [
+        640,
+        100
+      ],
+      "size": [
+        130,
+        60
+      ],
+      "tag": "new owner"
+    },
+    {
+      "id": "inventory",
+      "type": "backend",
+      "label": "Inventory Service",
+      "sublabel": "Spring Boot 3",
+      "pos": [
+        640,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "kafka",
+      "type": "messagebus",
+      "label": "Kafka",
+      "sublabel": "order events",
+      "pos": [
+        430,
+        400
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "fulfillment",
+      "type": "backend",
+      "label": "Fulfillment",
+      "sublabel": "Spring Boot worker",
+      "pos": [
+        640,
+        400
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "warehouse",
+      "type": "external",
+      "label": "Warehouse",
+      "sublabel": "external WMS",
+      "pos": [
+        850,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Kubernetes cluster",
+      "wraps": [
+        "gateway",
+        "order-service",
+        "reservation",
+        "inventory",
+        "kafka",
+        "fulfillment"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Inventory trust zone",
+      "wraps": [
+        "order-service",
+        "reservation",
+        "inventory"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "place-order",
+      "from": "storefront",
+      "to": "gateway",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "route-order",
+      "from": "gateway",
+      "to": "order-service"
+    },
+    {
+      "id": "reserve-flow",
+      "from": "order-service",
+      "to": "reservation",
+      "label": "reserve",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -66
+    },
+    {
+      "id": "check-stock",
+      "from": "order-service",
+      "to": "inventory",
+      "label": "gRPC"
+    },
+    {
+      "id": "publish-events",
+      "from": "order-service",
+      "to": "kafka",
+      "label": "OrderPlaced",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 66
+    },
+    {
+      "id": "consume-events",
+      "from": "kafka",
+      "to": "fulfillment"
+    },
+    {
+      "id": "warehouse-sync",
+      "from": "reservation",
+      "to": "warehouse",
+      "label": "stock sync",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          820,
+          130
+        ],
+        [
+          915,
+          130
+        ]
+      ]
+    }
+  ]
+}

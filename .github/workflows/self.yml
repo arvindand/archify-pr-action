@@ -1,0 +1,12 @@
+name: archify-self
+on:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  archify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./

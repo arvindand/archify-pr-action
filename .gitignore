@@ -1,0 +1,5 @@
+.archify-vendor/
+node_modules/
+archify-out/
+examples/demo-app/out/
+.DS_Store

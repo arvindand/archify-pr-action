@@ -1,0 +1,74 @@
+name: 'Archify PR Action'
+description: 'Architecture-diff review on pull requests: validates checked-in archify IR, compares against the base branch deterministically, comments the delta.'
+branding:
+  icon: 'git-pull-request'
+  color: 'purple'
+inputs:
+  map:
+    description: 'Git pathspec glob for archify architecture IR file(s)'
+    required: false
+    default: 'docs/architecture/*.architecture.json'
+  quality:
+    description: 'archify quality profile: standard or showcase'
+    required: false
+    default: 'standard'
+  nudge-paths:
+    description: 'Space-separated git pathspec globs that trigger the drift nudge when changed without a map update'
+    required: false
+    default: 'src/**'
+  comment:
+    description: 'on-change | always | never'
+    required: false
+    default: 'on-change'
+  token:
+    description: 'GitHub token used to upsert the PR comment'
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Vendor pinned archify
+      shell: bash
+      run: bash "${{ github.action_path }}/scripts/vendor-archify.sh" "$RUNNER_TEMP/archify-vendor"
+    - name: Fetch base commit
+      shell: bash
+      run: git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+    - name: Compare architecture maps
+      id: compare
+      shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        MAP_GLOB: ${{ inputs.map }}
+        NUDGE_PATHS: ${{ inputs.nudge-paths }}
+        QUALITY: ${{ inputs.quality }}
+        ARCHIFY_DIR: ${{ runner.temp }}/archify-vendor
+        OUTPUT_DIR: ${{ runner.temp }}/archify-out
+      run: |
+        set +e
+        node "${{ github.action_path }}/src/compare.mjs"
+        echo "exit=$?" >> "$GITHUB_OUTPUT"
+    - name: Post PR comment
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        COMMENT_MODE: ${{ inputs.comment }}
+        RESULTS_PATH: ${{ runner.temp }}/archify-out/results.json
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: node "${{ github.action_path }}/src/run-comment.mjs"
+    - name: Upload delta artifacts
+      uses: actions/upload-artifact@v4
+      # The review comment is the deliverable; a full artifact quota must not
+      # sink the check or skip the validation gate below.
+      continue-on-error: true
+      with:
+        name: archify-delta
+        path: ${{ runner.temp }}/archify-out
+        if-no-files-found: ignore
+    - name: Fail on validation errors
+      shell: bash
+      run: exit "${{ steps.compare.outputs.exit }}"

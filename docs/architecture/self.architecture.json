@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "archify-pr-action — PR review pipeline"
+  },
+  "components": [
+    {
+      "id": "pr-event",
+      "type": "external",
+      "label": "Pull Request",
+      "sublabel": "opened / synchronize",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "runner",
+      "type": "cloud",
+      "label": "Actions Runner",
+      "sublabel": "composite action",
+      "pos": [
+        220,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "compare",
+      "type": "backend",
+      "label": "compare.mjs",
+      "sublabel": "git + archify pipeline",
+      "pos": [
+        430,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "archify-cli",
+      "type": "backend",
+      "label": "archify CLI",
+      "sublabel": "pinned v2.15.0",
+      "pos": [
+        640,
+        250
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "artifacts",
+      "type": "database",
+      "label": "Workflow Artifacts",
+      "sublabel": "delta HTML + receipts",
+      "pos": [
+        430,
+        100
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "comment",
+      "type": "backend",
+      "label": "run-comment.mjs",
+      "sublabel": "sticky upsert",
+      "pos": [
+        430,
+        400
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "github-api",
+      "type": "external",
+      "label": "GitHub REST API",
+      "sublabel": "issues/comments",
+      "pos": [
+        640,
+        400
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "vendor-cache",
+      "type": "database",
+      "label": "Vendored archify",
+      "sublabel": "pinned tarball",
+      "pos": [
+        220,
+        100
+      ],
+      "size": [
+        130,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "GitHub Actions runner",
+      "wraps": [
+        "runner",
+        "compare",
+        "archify-cli",
+        "artifacts",
+        "comment"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "trigger",
+      "from": "pr-event",
+      "to": "runner",
+      "label": "triggers",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invoke-compare",
+      "from": "runner",
+      "to": "compare",
+      "label": "BASE_SHA + inputs",
+      "labelDy": -24
+    },
+    {
+      "id": "cli-calls",
+      "from": "compare",
+      "to": "archify-cli",
+      "label": "validate / compare",
+      "labelDy": -24
+    },
+    {
+      "id": "write-artifacts",
+      "from": "compare",
+      "to": "artifacts",
+      "label": "delta HTML"
+    },
+    {
+      "id": "results-handoff",
+      "from": "compare",
+      "to": "comment",
+      "label": "results.json",
+      "labelDy": 24
+    },
+    {
+      "id": "upsert",
+      "from": "comment",
+      "to": "github-api",
+      "label": "sticky comment",
+      "variant": "security"
+    },
+    {
+      "id": "vendor-fetch",
+      "from": "runner",
+      "to": "vendor-cache",
+      "label": "downloads"
+    }
+  ]
+}
