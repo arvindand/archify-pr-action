@@ -99,6 +99,15 @@ whether the architecture changed. A PR that touches neither gets no comment.
   artifact upload fails (storage quota, for example), the review still posts.
 - **Architecture diagrams only.** archify's `compare` supports the
   `architecture` type today.
+- **Pull requests from forks.** GitHub issues fork builds a read-only token, so
+  the comment cannot be posted. The review is written to the job summary instead
+  and the check still passes.
+
+## Not covered or tested
+
+- **Multiple maps in one repository.** The `map` input takes a glob and each
+  match is compared on its own. Covered by tests, but not yet run against a real
+  multi-map repository.
 
 ## Demo
 

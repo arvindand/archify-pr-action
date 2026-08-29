@@ -42,6 +42,28 @@ test('skips when shouldPost says no', async () => {
   assert.equal(calls.length, 0);
 });
 
+test('fork PR: 403 skips quietly instead of failing the check', async () => {
+  const fetchImpl = async () => ({ ok: false, status: 403, json: async () => ({}), text: async () => 'Resource not accessible by integration' });
+  const outcome = await upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'always', results: nudgeResults, runUrl: 'u', isFork: true, fetchImpl });
+  assert.equal(outcome.action, 'skipped-readonly');
+});
+
+test('fork PR: 403 on the write call also skips quietly', async () => {
+  const fetchImpl = async (url, init = {}) => (init.method
+    ? { ok: false, status: 403, json: async () => ({}), text: async () => 'Resource not accessible by integration' }
+    : { ok: true, json: async () => [], text: async () => '' });
+  const outcome = await upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'always', results: nudgeResults, runUrl: 'u', isFork: true, fetchImpl });
+  assert.equal(outcome.action, 'skipped-readonly');
+});
+
+test('non-fork 403 still throws: that is a real misconfiguration', async () => {
+  const fetchImpl = async () => ({ ok: false, status: 403, json: async () => ({}), text: async () => 'Resource not accessible' });
+  await assert.rejects(
+    upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'always', results: nudgeResults, runUrl: 'u', isFork: false, fetchImpl }),
+    /pull-requests: write/,
+  );
+});
+
 test('throws an actionable error on list failure (missing permission)', async () => {
   const fetchImpl = async () => ({ ok: false, status: 403, json: async () => ({}), text: async () => 'Resource not accessible' });
   await assert.rejects(
