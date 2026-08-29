@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "archify-pr-action — PR review pipeline"
+    "title": "archify-pr-action \u2014 PR review pipeline"
   },
   "components": [
     {
@@ -116,6 +116,20 @@
         130,
         60
       ]
+    },
+    {
+      "id": "receipt",
+      "type": "database",
+      "label": "Delta receipt",
+      "sublabel": "structural facts",
+      "pos": [
+        640,
+        100
+      ],
+      "size": [
+        130,
+        60
+      ]
     }
   ],
   "boundaries": [
@@ -127,7 +141,8 @@
         "compare",
         "archify-cli",
         "artifacts",
-        "comment"
+        "comment",
+        "receipt"
       ]
     }
   ],
@@ -178,6 +193,12 @@
       "from": "runner",
       "to": "vendor-cache",
       "label": "downloads"
+    },
+    {
+      "id": "emit-receipt",
+      "from": "archify-cli",
+      "to": "receipt",
+      "label": "emits"
     }
   ]
 }
