@@ -33,7 +33,10 @@ byte-identical receipts across runs.
 ```
 
 The comment is sticky. Pushing more commits updates it in place rather than
-adding a new one.
+adding a new one. Reverting an architecture change updates the previous review
+to say no architecture change is declared. A quiet PR with no previous review
+does not get a new comment. `comment: never` disables PR comment API calls; the
+job summary still contains the review.
 
 ## How it works
 
@@ -69,7 +72,7 @@ delta receipt.
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v4
-         - uses: arvindand/archify-pr-action@v0.1.0
+         - uses: arvindand/archify-pr-action@v0.2.0
    ```
 
 From then on, a PR that changes the map gets the delta comment. A PR that
@@ -95,6 +98,12 @@ whether the architecture changed. A PR that touches neither gets no comment.
   comment carries the diagnostics so the author can fix the named fields.
 - **New and deleted maps are handled.** A new map gets a full render attached;
   a deleted map is reported as removed.
+- **Rendering failures fail the check.** If a new map validates but cannot be
+  rendered, the review shows delivery diagnostics and does not claim a viewer
+  exists.
+- **Multiple maps.** Output names include a hash of the repository-relative map
+  path, so maps with the same filename in different directories have independent
+  viewers and receipts.
 - **Artifact upload is best-effort.** The comment is the deliverable. If the
   artifact upload fails (storage quota, for example), the review still posts.
 - **Architecture diagrams only.** archify's `compare` supports the
@@ -103,28 +112,43 @@ whether the architecture changed. A PR that touches neither gets no comment.
   the comment cannot be posted. The review is written to the job summary instead
   and the check still passes.
 
-## Not covered or tested
+## Demo and regression scenarios
 
-- **Multiple maps in one repository.** The `map` input takes a glob and each
-  match is compared on its own. Covered by tests, but not yet run against a real
-  multi-map repository.
-
-## Demo
-
-You can try the whole flow locally from a clone, no GitHub setup needed:
+Run the same pipeline used by the action against simulated pull requests:
 
 ```bash
 bash examples/demo-app/try.sh
 ```
 
-It compares an order-management platform's map against a proposed refactor
-(stock reservation extracted into its own service, a Redis cache dropped, a
-REST call migrated to gRPC), prints the comment the action would post, and
-renders the interactive viewer.
-See [`examples/demo-app`](examples/demo-app) for the scenario.
+Or, after downloading the pinned renderer:
+
+```bash
+bash scripts/vendor-archify.sh
+npm run demo
+```
+
+The command prints the path to a browsable HTML report with comments, results,
+API-call logs, and interactive architecture viewers. Each run gets a fresh
+output directory under `examples/demo-app/out/`. Pass a fresh output directory
+with `npm run demo -- /path/to/output` if needed.
+
+Six scenarios cover an order-management service extraction, a reverted change,
+two maps with the same filename, a rendering failure and recovery, code changes
+without a map update, and an invalid map followed by a repair. Across nine
+review revisions, assertions verify check results, retained artifacts, and
+updates to the same comment. These scenarios also run in `npm test` and CI.
+
+The demos use real temporary Git repositories and the pinned Archify CLI.
+GitHub comments are simulated in memory; the scenarios do not post anything.
+The rendering-failure case deliberately replaces only the `deliver` subprocess
+with a failure while using real validation, then retries with the real renderer.
+See [`examples/demo-app`](examples/demo-app) for the scenario details.
 
 This repository also runs the action on its own PRs, using
 [`docs/architecture/self.architecture.json`](docs/architecture/self.architecture.json).
+[PR #1](https://github.com/arvindand/archify-pr-action/pull/1) demonstrates the
+original live integration. The new scenarios verify local pipeline and comment
+behavior, not live GitHub permissions, artifact upload, or concurrent runs.
 
 ## License
 

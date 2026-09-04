@@ -53,19 +53,24 @@ function mapSection(map) {
     const table = changeTable(map.changes);
     if (table) lines.push(table, '');
   } else if (map.status === 'new') {
-    lines.push('🆕 New architecture map added. A full render is attached to the workflow artifacts.', '');
+    lines.push('🆕 New architecture map added.', '');
+    if (map.deltaHtml) lines.push('A full render was generated for upload to the workflow artifacts.', '');
   } else if (map.status === 'deleted') {
     lines.push('🗑️ Architecture map removed in this PR.', '');
   } else if (map.status === 'base-invalid') {
     lines.push('⚠️ The base version of this map does not validate (pre-existing issue); comparison was skipped. The head version validates.', '');
-  } else if (map.status === 'invalid') {
-    lines.push('❌ This map fails archify validation:', '');
+  } else if (map.status === 'invalid' || map.status === 'render-failed') {
+    lines.push(map.status === 'render-failed'
+      ? '❌ This map validates, but rendering failed. No viewer was produced:'
+      : '❌ This map fails archify validation:', '');
     for (const diagnostic of (map.diagnostics ?? []).slice(0, 10)) {
       const rule = diagnostic.rule ?? diagnostic.code ?? 'error';
       const subject = diagnostic.subject ? ` at \`${JSON.stringify(diagnostic.subject)}\`` : '';
       lines.push(`- \`${rule}\`${subject} ${diagnostic.message ?? ''}`.trimEnd());
     }
-    lines.push('', '_Fix: ask your agent to run `archify validate architecture <map> --json` and repair the named fields._', '');
+    lines.push('', map.status === 'render-failed'
+      ? '_Fix: inspect the delivery diagnostics and rerun `archify deliver architecture <map> <output.html> --json` using the same quality profile as the action._'
+      : '_Fix: ask your agent to run `archify validate architecture <map> --json` and repair the named fields._', '');
   }
   return lines;
 }
@@ -81,7 +86,10 @@ export function buildComment(results, runUrl) {
   } else {
     for (const map of changedMaps) lines.push(...mapSection(map));
   }
-  lines.push('---', `_archify ${results.archifyVersion} · interactive Before/Delta/After HTML: [workflow artifacts](${runUrl})_`);
+  const hasViewer = results.maps.some((map) => map.deltaHtml);
+  lines.push('---', hasViewer
+    ? `_archify ${results.archifyVersion} · generated HTML viewers: [workflow artifacts](${runUrl}) (if upload succeeded)_`
+    : `_archify ${results.archifyVersion} · [workflow run](${runUrl})_`);
   return lines.join('\n');
 }
 

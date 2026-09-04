@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { upsertComment } from './comment.mjs';
-import { buildComment, shouldPost } from './markdown.mjs';
+import { buildComment } from './markdown.mjs';
 
 const results = JSON.parse(fs.readFileSync(process.env.RESULTS_PATH ?? 'archify-out/results.json', 'utf8'));
 const mode = process.env.COMMENT_MODE ?? 'on-change';
@@ -9,7 +9,7 @@ const isFork = process.env.IS_FORK === 'true';
 
 // The job summary always carries the review. Pull requests from forks get a
 // read-only token, so the comment cannot be posted there.
-if (shouldPost(results, mode) && process.env.GITHUB_STEP_SUMMARY) {
+if (process.env.GITHUB_STEP_SUMMARY) {
   fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${buildComment(results, runUrl)}\n`);
 }
 

@@ -17,7 +17,7 @@ inputs:
     required: false
     default: 'src/**'
   comment:
-    description: 'on-change | always | never'
+    description: 'on-change | always | never; on-change also updates an existing review after a revert'
     required: false
     default: 'on-change'
   token:

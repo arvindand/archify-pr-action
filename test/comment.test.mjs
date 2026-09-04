@@ -35,11 +35,12 @@ test('updates the existing marker comment', async () => {
   assert.match(calls[1].url, /\/repos\/o\/r\/issues\/comments\/9$/);
 });
 
-test('skips when shouldPost says no', async () => {
+test('quiet PR without a previous review lists comments but does not create one', async () => {
   const { calls, fetchImpl } = fakeFetch([]);
   const outcome = await upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'on-change', results: quietResults, runUrl: 'https://example.test/run', fetchImpl });
   assert.equal(outcome.action, 'skipped');
-  assert.equal(calls.length, 0);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, 'GET');
 });
 
 test('fork PR: 403 skips quietly instead of failing the check', async () => {
@@ -70,4 +71,29 @@ test('throws an actionable error on list failure (missing permission)', async ()
     upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'always', results: quietResults, runUrl: 'u', fetchImpl }),
     /pull-requests: write/,
   );
+});
+
+
+test('never mode does not list or write comments, even when a review exists', async () => {
+  const { calls, fetchImpl } = fakeFetch([{ id: 9, body: `${MARKER}\nold body` }]);
+  const outcome = await upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'never', results: nudgeResults, runUrl: 'u', fetchImpl });
+  assert.equal(outcome.action, 'skipped');
+  assert.equal(calls.length, 0);
+});
+
+test('quiet revision updates an existing review beyond the first page', async () => {
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    calls.push({ url, method: init.method ?? 'GET', body: init.body });
+    const page = new URL(url).searchParams.get('page');
+    return { ok: true, json: async () => page === '1'
+      ? Array.from({ length: 100 }, (_, id) => ({ id, body: 'discussion' }))
+      : [{ id: 101, body: `${MARKER}\nold changes` }] };
+  };
+  const outcome = await upsertComment({ token: 't', repository: 'o/r', prNumber: 5, mode: 'on-change', results: quietResults, runUrl: 'u', fetchImpl });
+  assert.equal(outcome.action, 'updated');
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].method, 'PATCH');
+  assert.match(calls[2].url, /comments\/101$/);
+  assert.match(JSON.parse(calls[2].body).body, /No architecture change declared/);
 });

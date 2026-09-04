@@ -13,3 +13,11 @@ jobs:
           node-version: '20'
       - run: bash scripts/vendor-archify.sh
       - run: npm test
+      - name: Build verified demo report
+        run: bash examples/demo-app/try.sh "$RUNNER_TEMP/archify-demo"
+      - name: Upload demo report
+        uses: actions/upload-artifact@v4
+        with:
+          name: archify-demo
+          path: ${{ runner.temp }}/archify-demo
+          if-no-files-found: error
