@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -57,7 +58,9 @@ for (const mapPath of allMaps) {
   } catch {
     baseContent = null;
   }
-  const slug = path.basename(mapPath).replace(/\.json$/, '');
+  // Include the repository-relative path so equal basenames cannot share outputs.
+  const pathHash = createHash('sha256').update(mapPath).digest('hex').slice(0, 16);
+  const slug = `${path.basename(mapPath).replace(/\.json$/, '')}-${pathHash}`;
   const entry = { path: mapPath, status: 'unchanged', summary: null, changes: null, deltaHtml: null, diagnostics: [] };
 
   if (!headExists && baseContent !== null) {
@@ -73,7 +76,11 @@ for (const mapPath of allMaps) {
       const htmlName = `render-${slug}.html`;
       const deliver = archify(['deliver', 'architecture', mapPath, path.join(OUTPUT_DIR, htmlName), '--quality', QUALITY, '--json']);
       if (deliver.status === 0) entry.deltaHtml = htmlName;
-      else entry.diagnostics = diagnosticsFrom(deliver.stdout, 'deliver failed');
+      else {
+        entry.status = 'render-failed';
+        entry.diagnostics = diagnosticsFrom(deliver.stdout, 'deliver failed');
+        failed = true;
+      }
     }
   } else if (headExists && changedMaps.includes(mapPath)) {
     const validation = archify(['validate', 'architecture', mapPath, '--quality', QUALITY, '--json']);
