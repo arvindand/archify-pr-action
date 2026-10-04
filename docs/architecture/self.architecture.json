@@ -159,7 +159,7 @@
       "id": "invoke-compare",
       "from": "runner",
       "to": "compare",
-      "label": "BASE_SHA + inputs",
+      "label": "committed snapshots",
       "labelDy": -24
     },
     {
