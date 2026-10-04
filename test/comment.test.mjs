@@ -4,8 +4,8 @@ import { upsertComment } from '../src/comment.mjs';
 import { MARKER } from '../src/markdown.mjs';
 
 const quietMap = { path: 'docs/architecture/app.architecture.json', status: 'unchanged', summary: null, changes: null, deltaHtml: null, diagnostics: [] };
-const nudgeResults = { archifyVersion: 'v2.15.0', nudge: true, changedCodePaths: ['src/a.js'], maps: [quietMap] };
-const quietResults = { archifyVersion: 'v2.15.0', nudge: false, changedCodePaths: [], maps: [quietMap] };
+const nudgeResults = { archifyVersion: 'v3.0.1', nudge: true, changedCodePaths: ['src/a.js'], maps: [quietMap] };
+const quietResults = { archifyVersion: 'v3.0.1', nudge: false, changedCodePaths: [], maps: [quietMap] };
 
 function fakeFetch(existingComments) {
   const calls = [];

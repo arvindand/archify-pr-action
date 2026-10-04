@@ -15,7 +15,8 @@ Before/Delta/After HTML viewer is attached as a workflow artifact.
 Everything that runs in CI is plain Node. There are no LLM calls and no API
 keys. The comparison is deterministic: archify canonicalizes both snapshots
 before diffing, and this repository's CI verifies that the same inputs produce
-byte-identical receipts across runs.
+byte-identical receipts and HTML across runs. Semantic regression checks are
+separate from renderer-specific HTML hashes.
 
 ## The PR comment
 
@@ -24,12 +25,16 @@ byte-identical receipts across runs.
 
 ### `docs/architecture/self.architecture.json`
 
-**2 added · 0 removed · 0 changed · 0 moved/rerouted**
+**2 added · 0 removed · 0 changed**
 
 | | kind | element | change |
 |---|---|---|---|
 | + | component | `Vendored archify` | added |
 | + | connection | `runner → vendor-cache` (downloads) | added |
+
+_Proof: authored snapshots._
+
+Compared Git revisions: `<base SHA>` → `<checked-out SHA>` (checked-out HEAD).
 ```
 
 The comment is sticky. Pushing more commits updates it in place rather than
@@ -37,6 +42,12 @@ adding a new one. Reverting an architecture change updates the previous review
 to say no architecture change is declared. A quiet PR with no previous review
 does not get a new comment. `comment: never` disables PR comment API calls; the
 job summary still contains the review.
+
+Architecture changes, evidence bindings, layout, presentation, and repository
+provenance are reported separately. A formatting or output-path edit reports no
+structural change, instead of an all-zero change headline. Each
+comparison shows its receipt's proof level and the actual Git commits compared.
+Revision-pinned source references do not prove runtime topology or merge safety.
 
 ## How it works
 
@@ -71,13 +82,42 @@ delta receipt.
      archify:
        runs-on: ubuntu-latest
        steps:
-         - uses: actions/checkout@v4
-         - uses: arvindand/archify-pr-action@v0.2.0
+         - uses: actions/checkout@v7
+         - uses: arvindand/archify-pr-action@v0.3.0
    ```
 
 From then on, a PR that changes the map gets the delta comment. A PR that
 changes code under `src/**` without touching the map gets a short note asking
 whether the architecture changed. A PR that touches neither gets no comment.
+
+Keep checkout's default PR merge ref. The action compares the event's base
+commit with the checked-out commit: with the default checkout, this shows what
+merging the PR changes. It reads committed JSON snapshots, so edits made to the
+working tree by earlier steps are not attributed to those commits. Checking out
+the topic head instead compares two branch tips and may include base-branch
+differences; the comment records both SHAs explicitly.
+
+## Upgrading from v0.2.0
+
+The v0.3.0 release uses Archify v3.0.1. Every architecture map now needs a
+portable POSIX-relative HTML output path, for example:
+
+```json
+"meta": {
+  "title": "Runtime architecture",
+  "output": "docs/architecture/runtime.html"
+}
+```
+
+Add `meta.output` to your checked-in maps before upgrading the action. It must
+end in `.html` and use `/` separators. Absolute paths, `.` or `..` segments,
+backslashes, Windows-reserved names, and trailing dots or spaces are rejected;
+see Archify's [portable output-path contract](https://github.com/tt-a1i/archify/blob/v3.0.1/archify/schemas/common.schema.json)
+for the complete rules. The action still chooses its own artifact filenames;
+the authored output path does not affect the semantic diff.
+If only the old base map lacks the field, the check reports that the base does
+not validate with the current renderer and skips comparison with diagnostics.
+It does not fail a repaired head map or claim a diff was generated.
 
 ## Inputs
 
@@ -92,8 +132,16 @@ whether the architecture changed. A PR that touches neither gets no comment.
 ## Behavior notes
 
 - **Pinned archify.** The action vendors archify at an exact commit (currently
-  v2.15.0). A schema mismatch fails loudly with archify's diagnostics instead of
-  producing a wrong diff.
+  v3.0.1). A schema mismatch fails loudly with archify's diagnostics instead of
+  producing a wrong diff. Advisory update checks are disabled for this pinned
+  CI dependency.
+- **Runtime.** The action uses Node 24 and current v7 GitHub Actions. Self-hosted
+  runners need Actions Runner 2.327.1 or later. Snapshot reads require Git
+  2.36+ for [`ls-tree --format`](https://github.com/git/git/blob/v2.36.0/Documentation/RelNotes/2.36.0.txt).
+  Local scripts remain compatible with Node 20+, with CI coverage on Node 20,
+  22, and 24. Node 24 also remains on
+  PATH for later steps in the job; add another setup-node step afterward if
+  those steps need a different version.
 - **Validation failures fail the check.** If the map doesn't validate, the
   comment carries the diagnostics so the author can fix the named fields.
 - **New and deleted maps are handled.** A new map gets a full render attached;
@@ -108,6 +156,10 @@ whether the architecture changed. A PR that touches neither gets no comment.
   artifact upload fails (storage quota, for example), the review still posts.
 - **Architecture diagrams only.** archify's `compare` supports the
   `architecture` type today.
+- **Source evidence.** Maps that declare `meta.repository` or component
+  `sources` are not supported by this action yet. Repository evidence requires
+  an explicit repository root and access to its pinned revisions; this action
+  currently reviews authored maps without that evidence.
 - **Pull requests from forks.** GitHub issues fork builds a read-only token, so
   the comment cannot be posted. The review is written to the job summary instead
   and the check still passes.
@@ -132,9 +184,10 @@ API-call logs, and interactive architecture viewers. Each run gets a fresh
 output directory under `examples/demo-app/out/`. Pass a fresh output directory
 with `npm run demo -- /path/to/output` if needed.
 
-Six scenarios cover an order-management service extraction, a reverted change,
-two maps with the same filename, a rendering failure and recovery, code changes
-without a map update, and an invalid map followed by a repair. Across nine
+Seven scenarios cover formatting/output/title edits, an order-management service
+extraction, a reverted change, two maps with the same filename, a rendering
+failure and recovery, code changes
+without a map update, and an invalid map followed by a repair. Across twelve
 review revisions, assertions verify check results, retained artifacts, and
 updates to the same comment. These scenarios also run in `npm test` and CI.
 

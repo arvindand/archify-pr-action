@@ -8,26 +8,45 @@ import path from 'node:path';
 const ARCHIFY_DIR = process.env.ARCHIFY_DIR ?? '.archify-vendor';
 const CLI = path.join(ARCHIFY_DIR, 'bin', 'archify.mjs');
 
-// Drop only run-variant keys (durations, timestamps, machine paths) if the CLI adds any.
-const VOLATILE = /^(durationMs|elapsedMs|generatedAt|timestamp|createdAt|outputPath|receiptPath|htmlPath)$/;
-const normalize = (value) =>
-  JSON.parse(JSON.stringify(value, (key, val) => (VOLATILE.test(key) ? undefined : val)));
-
 function runCompare() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'archify-det-'));
   const receiptPath = path.join(dir, 'receipt.json');
-  execFileSync('node', [
-    CLI, 'compare', 'architecture',
-    'examples/fixtures/base.architecture.json', 'examples/fixtures/head.architecture.json',
-    path.join(dir, 'delta.html'), '--receipt', receiptPath, '--json',
-  ], { encoding: 'utf8' });
-  return JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+  const htmlPath = path.join(dir, 'delta.html');
+  try {
+    execFileSync(process.execPath, [
+      CLI, 'compare', 'architecture',
+      'examples/fixtures/base.architecture.json', 'examples/fixtures/head.architecture.json',
+      htmlPath, '--receipt', receiptPath, '--json',
+    ], { encoding: 'utf8' });
+    return {
+      receipt: fs.readFileSync(receiptPath),
+      html: fs.readFileSync(htmlPath),
+    };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
-test('compare is deterministic across runs and matches the committed receipt', () => {
+test('compare emits identical receipt and HTML bytes across runs', () => {
   const first = runCompare();
   const second = runCompare();
-  assert.deepEqual(normalize(first), normalize(second));
+  assert.deepEqual(first.receipt, second.receipt);
+  assert.deepEqual(first.html, second.html);
+});
+
+// Renderer bytes and validation counts can change without changing the authored
+// architecture delta. Keep that semantic contract independent of the byte check.
+function semanticComparison(receipt) {
+  return {
+    summary: receipt.summary,
+    changes: receipt.changes,
+    baseSemanticSha256: receipt.base.semanticSha256,
+    headSemanticSha256: receipt.head.semanticSha256,
+  };
+}
+
+test('compare preserves the committed semantic delta and input hashes', () => {
+  const actual = JSON.parse(runCompare().receipt.toString('utf8'));
   const expected = JSON.parse(fs.readFileSync('examples/fixtures/expected-receipt.json', 'utf8'));
-  assert.deepEqual(normalize(first), normalize(expected));
+  assert.deepEqual(semanticComparison(actual), semanticComparison(expected));
 });

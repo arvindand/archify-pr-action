@@ -2,6 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
+    "output": "docs/architecture/orders.html",
     "title": "Order Management \u2014 Stock Reservation",
     "visual_preset": "signal-flow"
   },

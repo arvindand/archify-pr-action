@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Pinned archify version: tag v2.15.0. Update SHA + tag together, then re-run Task 2 fixture capture.
-ARCHIFY_SHA="e1ac748f19cf805e44bf74fb93c796662152e273"
+# Pinned archify version: tag v3.0.1. Update SHA + tag together, then verify the fixture semantic contract and determinism.
+ARCHIFY_SHA="2ab3cae7ac2c2a55d7386ca789d03c4fcd31816c"
 DEST="${1:-.archify-vendor}"
 rm -rf "$DEST"
 mkdir -p "$DEST"

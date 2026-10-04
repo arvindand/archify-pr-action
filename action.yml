@@ -27,9 +27,10 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
-        node-version: '20'
+        node-version: '24'
+        package-manager-cache: false
     - name: Vendor pinned archify
       shell: bash
       run: bash "${{ github.action_path }}/scripts/vendor-archify.sh" "$RUNNER_TEMP/archify-vendor"
@@ -62,7 +63,7 @@ runs:
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: node "${{ github.action_path }}/src/run-comment.mjs"
     - name: Upload delta artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       # The review comment is the deliverable; a full artifact quota must not
       # sink the check or skip the validation gate below.
       continue-on-error: true
