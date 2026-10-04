@@ -6,18 +6,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
       - run: bash scripts/vendor-archify.sh
       - run: npm test
       - name: Build verified demo report
         run: bash examples/demo-app/try.sh "$RUNNER_TEMP/archify-demo"
       - name: Upload demo report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: archify-demo
+          name: archify-demo-node-${{ matrix.node }}
           path: ${{ runner.temp }}/archify-demo
           if-no-files-found: error

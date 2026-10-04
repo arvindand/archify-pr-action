@@ -36,6 +36,40 @@ function commentApi() {
 
 export const scenarios = [
   {
+    id: 'map-only-edits', title: 'Map edits without architecture changes',
+    description: 'Reformat the map, change its output path, then rename its title. The review separates changed bytes and presentation from architecture.',
+    async run(c) {
+      c.write(MAP, JSON.stringify(baseline, null, 4) + '\n'); c.commit('Reformat the map');
+      const formatted = await c.review('01-formatting-only');
+      assert.equal(formatted.exit, 0);
+      assert.equal(formatted.results.maps[0].base.semanticSha256, formatted.results.maps[0].head.semanticSha256);
+      assert.match(formatted.comment, /No structural changes/);
+      assert.match(formatted.comment, /Canonical map content is unchanged/);
+      assert.equal(formatted.commentAction, 'created'); c.assertViewer(formatted);
+
+      const outputOnly = structuredClone(baseline);
+      outputOnly.meta.output = 'reports/orders-renamed.html';
+      c.write(MAP, outputOnly); c.commit('Change the output path');
+      const relocated = await c.review('02-output-only');
+      assert.equal(relocated.exit, 0);
+      assert.equal(relocated.results.maps[0].base.semanticSha256, relocated.results.maps[0].head.semanticSha256);
+      assert.match(relocated.comment, /No structural changes/);
+      assert.equal(relocated.commentAction, 'updated'); c.assertViewer(relocated);
+
+      const titleOnly = structuredClone(baseline);
+      titleOnly.meta.title = 'Order management — a clearer title';
+      c.write(MAP, titleOnly); c.commit('Rename the map title');
+      const renamed = await c.review('03-title-only');
+      assert.equal(renamed.exit, 0);
+      assert.equal(renamed.results.maps[0].summary.presentationChanged, true);
+      assert.match(renamed.comment, /No structural changes/);
+      assert.match(renamed.comment, /Presentation: changed/);
+      assert.doesNotMatch(renamed.comment, /0 added · 0 removed · 0 changed/);
+      assert.equal(renamed.commentAction, 'updated'); c.assertViewer(renamed);
+      assert.equal(c.api.comments.length, 1);
+    },
+  },
+  {
     id: 'service-extraction', title: 'Extract stock reservation',
     description: 'Add a reservation service, remove Redis, change REST to gRPC, and move the warehouse connection.',
     async run(c) {
@@ -204,12 +238,13 @@ export async function runScenario(scenario, { outputDir, archifyDir = path.join(
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export function writeReport(reports, outputDir) {
+  const revisionCount = reports.reduce((count, report) => count + report.revisions.length, 0);
   const cards = reports.map((report) => `<section><h2>${escapeHtml(report.title)}</h2><p>${escapeHtml(report.description)}</p>${report.revisions.map((revision) => {
     const relative = `${report.id}/${revision.name}`;
     const links = revision.results.maps.filter((map) => map.deltaHtml).map((map) => `<a href="${relative}/${encodeURIComponent(map.deltaHtml)}">Open viewer: ${escapeHtml(map.path)}</a>`);
     return `<article><h3>${escapeHtml(revision.name)} <span class="${revision.exit === 0 ? 'ok' : 'failure'}">${revision.exit === 0 ? 'CHECK PASSES' : 'EXPECTED CHECK FAILURE'}</span></h3><p>Comment: ${escapeHtml(revision.commentAction)} · ${revision.simulatedCommentCount} comment in simulated PR</p><nav>${links.join('')}<a href="${relative}/results.json">Results JSON</a><a href="${relative}/comment.md">Comment Markdown</a><a href="${relative}/github-events.json">Simulated API calls</a></nav><details><summary>Read the PR comment</summary><pre>${escapeHtml(revision.comment)}</pre></details></article>`;
   }).join('')}</section>`).join('');
-  fs.writeFileSync(path.join(outputDir, 'index.html'), `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Archify PR Action — scenario report</title><style>body{margin:0;background:#f4f6fa;color:#172338;font:16px/1.55 system-ui,sans-serif}main{max-width:1080px;margin:48px auto;padding:0 24px}h1{font-size:38px;line-height:1.15}h2{font-size:25px;margin-top:0}h3{font-size:17px}section{background:white;border:1px solid #dce2eb;border-radius:12px;padding:28px;margin:24px 0}article{border-top:1px solid #e4e8ef;padding:12px 0}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#2454aa}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f7fa;padding:16px;border-radius:8px;font-size:13px}span{font-size:11px;padding:5px 8px;border-radius:5px;white-space:nowrap}.ok{background:#e2f5e9;color:#165633}.failure{background:#fff0d9;color:#774b09}summary{cursor:pointer;margin-top:16px}.intro{max-width:850px;color:#48566d}</style><main><p>ARCHIFY PR ACTION · LOCAL VERIFICATION</p><h1>Six scenarios. Nine review revisions.</h1><p class="intro">All ${reports.length} scenarios passed their assertions. These are simulated pull requests using real temporary Git repositories and the pinned Archify renderer. GitHub comment calls are simulated in memory; no PR was created or updated. One scenario deliberately injects a rendering failure. Expected failing checks are part of a passing scenario.</p>${cards}</main></html>`);
+  fs.writeFileSync(path.join(outputDir, 'index.html'), `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Archify PR Action — scenario report</title><style>body{margin:0;background:#f4f6fa;color:#172338;font:16px/1.55 system-ui,sans-serif}main{max-width:1080px;margin:48px auto;padding:0 24px}h1{font-size:38px;line-height:1.15}h2{font-size:25px;margin-top:0}h3{font-size:17px}section{background:white;border:1px solid #dce2eb;border-radius:12px;padding:28px;margin:24px 0}article{border-top:1px solid #e4e8ef;padding:12px 0}nav{display:flex;gap:12px;flex-wrap:wrap}a{color:#2454aa}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f7fa;padding:16px;border-radius:8px;font-size:13px}span{font-size:11px;padding:5px 8px;border-radius:5px;white-space:nowrap}.ok{background:#e2f5e9;color:#165633}.failure{background:#fff0d9;color:#774b09}summary{cursor:pointer;margin-top:16px}.intro{max-width:850px;color:#48566d}</style><main><p>ARCHIFY PR ACTION · LOCAL VERIFICATION</p><h1>${reports.length} scenarios. ${revisionCount} review revisions.</h1><p class="intro">All ${reports.length} scenarios passed their assertions. These are simulated pull requests using real temporary Git repositories and the pinned Archify renderer. GitHub comment calls are simulated in memory; no PR was created or updated. One scenario deliberately injects a rendering failure. Expected failing checks are part of a passing scenario.</p>${cards}</main></html>`);
   fs.writeFileSync(path.join(outputDir, 'report.json'), encode(reports));
 }
 

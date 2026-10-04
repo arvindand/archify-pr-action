@@ -11,7 +11,7 @@ test('vendored archify CLI exists and prints usage', () => {
   assert.ok(fs.existsSync(cliPath), `expected ${cliPath} to exist — run: bash scripts/vendor-archify.sh`);
   let output = '';
   try {
-    output = execFileSync('node', [cliPath], { encoding: 'utf8' });
+    output = execFileSync(process.execPath, [cliPath], { encoding: 'utf8' });
   } catch (error) {
     output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
   }

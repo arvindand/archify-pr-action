@@ -10,7 +10,7 @@ test('quiet review is written to the summary with PR comments disabled', (t) => 
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const resultsPath = path.join(directory, 'results.json');
   const summaryPath = path.join(directory, 'summary.md');
-  fs.writeFileSync(resultsPath, JSON.stringify({ archifyVersion: 'v2.15.0', nudge: false, maps: [], changedCodePaths: [] }));
+  fs.writeFileSync(resultsPath, JSON.stringify({ archifyVersion: 'v3.0.1', nudge: false, maps: [], changedCodePaths: [] }));
   execFileSync(process.execPath, ['src/run-comment.mjs'], {
     env: { ...process.env, RESULTS_PATH: resultsPath, GITHUB_STEP_SUMMARY: summaryPath,
       COMMENT_MODE: 'never', GITHUB_TOKEN: '', GITHUB_REPOSITORY: '', RUN_URL: 'https://example.test/run' },

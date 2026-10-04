@@ -25,6 +25,7 @@ Git are required; curl and tar are needed for the initial dependency download.
 
 | Scenario | Revisions and expected behavior |
 |---|---|
+| Formatting, output, and title | Three revisions update one comment; formatting/output edits report unchanged canonical content, and the title edit reports presentation separately |
 | Service extraction | Real comparison of baseline and proposed maps; a passing check, change comment, and interactive viewer |
 | Reverted change | Refactor, then revert; one comment is created and subsequently updated to show no declared change |
 | Same filename | Two nested `runtime.architecture.json` maps change independently; both viewers and receipts survive |
@@ -32,7 +33,7 @@ Git are required; curl and tar are needed for the initial dependency download.
 | Code only | A simulated source file changes while its map stays unchanged; the action asks whether architecture changed |
 | Invalid, then repaired | Invalid JSON structure fails validation; a corrected revision passes and updates the same comment |
 
-These six scenarios exercise nine review revisions and are also regression tests
+These seven scenarios exercise twelve review revisions and are also regression tests
 run by `npm test`. A scenario passes only when its assertions succeed; an expected
 failing check is part of the rendering and invalid-map scenarios.
 
