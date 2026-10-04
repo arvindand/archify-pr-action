@@ -156,6 +156,7 @@
       "variant": "emphasis"
     },
     {
+      "id": "invoke-compare",
       "from": "runner",
       "to": "compare",
       "label": "committed snapshots",
