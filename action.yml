@@ -59,6 +59,7 @@ runs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         COMMENT_MODE: ${{ inputs.comment }}
         IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         RESULTS_PATH: ${{ runner.temp }}/archify-out/results.json
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: node "${{ github.action_path }}/src/run-comment.mjs"

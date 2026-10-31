@@ -75,6 +75,9 @@ delta receipt.
    name: architecture-review
    on:
      pull_request:
+   concurrency:
+     group: architecture-review-${{ github.event.pull_request.number }}
+     cancel-in-progress: true
    permissions:
      contents: read
      pull-requests: write
@@ -83,7 +86,7 @@ delta receipt.
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v7
-         - uses: arvindand/archify-pr-action@v0.3.0
+         - uses: arvindand/archify-pr-action@v0.3.1
    ```
 
 From then on, a PR that changes the map gets the delta comment. A PR that
@@ -160,6 +163,7 @@ It does not fail a repaired head map or claim a diff was generated.
   `sources` are not supported by this action yet. Repository evidence requires
   an explicit repository root and access to its pinned revisions; this action
   currently reviews authored maps without that evidence.
+- **Superseded runs.** Immediately before writing a comment, the action checks the current PR head and skips an older revision. Use the per-PR concurrency group in the example to cancel overlapping runs. GitHub does not make the head check and comment write atomic; a head change in that brief interval remains possible.
 - **Pull requests from forks.** GitHub issues fork builds a read-only token, so
   the comment cannot be posted. The review is written to the job summary instead
   and the check still passes.
@@ -201,7 +205,7 @@ This repository also runs the action on its own PRs, using
 [`docs/architecture/self.architecture.json`](docs/architecture/self.architecture.json).
 [PR #1](https://github.com/arvindand/archify-pr-action/pull/1) demonstrates the
 original live integration. The new scenarios verify local pipeline and comment
-behavior, not live GitHub permissions, artifact upload, or concurrent runs.
+behavior, not every live GitHub permission configuration or artifact upload. The unit suite also covers read-only fork handling and stale-head comment suppression; it is not a live race test.
 
 ## License
 

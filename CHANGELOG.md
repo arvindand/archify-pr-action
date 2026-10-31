@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-10-31
+
+- Skip comment writes for fork PRs without requiring token permissions; retain job-summary delivery.
+- Check the current PR head immediately before commenting so superseded runs cannot knowingly replace a newer review. Add per-PR cancellation to the self workflow and documented setup.
+- Cover stale-head suppression, current-head writes and fork read-only behavior with offline tests. The head check/write interval is not atomic.
+
 ## v0.3.0
 
 - Upgrade the pinned Archify renderer from v2.15.0 to v3.0.1. **Migration:**
