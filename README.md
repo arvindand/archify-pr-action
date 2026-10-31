@@ -86,7 +86,7 @@ delta receipt.
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v7
-         - uses: arvindand/archify-pr-action@v0.3.1
+         - uses: arvindand/archify-pr-action@v0.3.2
    ```
 
 From then on, a PR that changes the map gets the delta comment. A PR that
