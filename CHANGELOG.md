@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 - 2026-10-31
+
+- Detect fork PRs by comparing head/base repository identity, so same-repository PRs in forked repositories keep their writable comment path.
+
 ## 0.3.1 - 2026-10-31
 
 - Skip comment writes for fork PRs without requiring token permissions; retain job-summary delivery.
