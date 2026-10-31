@@ -21,10 +21,13 @@ const outcome = await upsertComment({
   results,
   runUrl,
   isFork,
+  expectedHeadSha: process.env.EXPECTED_HEAD_SHA,
 });
 
 if (outcome.action === 'skipped-readonly') {
   console.log('comment: skipped (read-only token, expected for a pull request from a fork). The review is in the job summary.');
+} else if (outcome.action === 'skipped-stale') {
+  console.log('comment: skipped (the PR head changed). This revision remains available in the job summary.');
 } else {
   console.log(`comment: ${outcome.action}`);
 }

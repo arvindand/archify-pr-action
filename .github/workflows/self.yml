@@ -4,6 +4,9 @@ on:
 permissions:
   contents: read
   pull-requests: write
+concurrency:
+  group: archify-self-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 jobs:
   archify:
     runs-on: ubuntu-latest
